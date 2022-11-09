@@ -67,6 +67,24 @@ impl TryFrom<&StringRecord> for DataPacket {
     }
 }
 
+impl TryFrom<&str> for DataPacket {
+    type Error = anyhow::Error;
+    fn try_from(str: &str) -> Result<Self, Self::Error> {
+        let r: Vec<&str> = str.split(',').collect();
+        let r = csv::ByteRecord::from(r);
+        let r = &StringRecord::from_byte_record(r)?;
+        r.try_into()
+    }
+}
+
+#[test]
+fn string_to_data() {
+    let input = "1126349,49106,10,PI,1,100,156593,156471,156372,156300,156205,156136,156130,156103,156051,156103";
+    let packet: DataPacket = input.try_into().unwrap();
+    assert_eq!(packet.packet_id, 49106);
+    assert_eq!(packet.data_points, 10);
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
     EA(Vec<f32>),
