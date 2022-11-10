@@ -1,4 +1,4 @@
-use crate::types::DataPacket;
+use crate::types::Csv;
 use anyhow::Result;
 
 pub struct ParserWriter {
@@ -6,7 +6,7 @@ pub struct ParserWriter {
 }
 
 impl ParserWriter {
-    pub fn write(&mut self, datapacket: DataPacket) -> Result<()> {
+    pub fn write<T: Csv>(&mut self, datapacket: T) -> Result<()> {
         for item in datapacket.csv() {
             self.writer.write_record(&item)?;
         }

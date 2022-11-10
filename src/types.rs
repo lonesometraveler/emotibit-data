@@ -12,6 +12,10 @@ use anyhow::{anyhow, Result};
 use csv::StringRecord;
 use std::str::FromStr;
 
+pub trait Csv {
+    fn csv(&self) -> Vec<StringRecord>;
+}
+
 #[derive(Debug, Clone)]
 pub struct DataPacket {
     pub timestamp: f32,
@@ -22,10 +26,10 @@ pub struct DataPacket {
     pub data_type: DataType,
 }
 
-impl DataPacket {
-    pub fn csv(&self) -> Vec<StringRecord> {
+impl Csv for DataPacket {
+    fn csv(&self) -> Vec<StringRecord> {
         let mut vec = Vec::new();
-        let payload = self.data_type.payload();
+        let payload = Self::parse_data_type(&self.data_type, self.data_type.payload());
         for p in payload {
             vec.push(StringRecord::from(vec![
                 self.timestamp.to_string(),
@@ -38,6 +42,19 @@ impl DataPacket {
             ]));
         }
         vec
+    }
+}
+impl DataPacket {
+    fn parse_data_type(data_type: &DataType, payload: Vec<String>) -> Vec<String> {
+        use DataType::*;
+        match data_type {
+            TxLcLm(_) | TxTlLc(_) => vec![format!(
+                "{},{}",
+                payload.get(0).unwrap(),
+                payload.get(1).unwrap()
+            )],
+            _ => payload,
+        }
     }
 }
 
@@ -62,7 +79,7 @@ impl TryFrom<&StringRecord> for DataPacket {
                 data_type: get_data_type(r, data_type)?,
             })
         } else {
-            Err(anyhow!("Missing Column"))
+            Err(anyhow!("Missing Column, record: {:?}", r))
         }
     }
 }
@@ -119,9 +136,11 @@ pub enum DataType {
     AK(Vec<String>),
     RD(Vec<String>),
     TE,
-    TL,
+    TL(String),
     TU,
-    TX,
+    TX(Vec<String>),
+    TxTlLc((String, f32)),
+    TxLcLm(Vec<f32>),
     EM(Vec<String>),
     EI,
     HR(Vec<i32>),
@@ -191,9 +210,11 @@ impl DataType {
             AK(_) => "AK",
             RD(_) => "RD",
             TE => "TE",
-            TL => "TL",
+            TL(_) => "TL",
             TU => "TU",
-            TX => "TX",
+            TX(_) => "TX",
+            TxTlLc(_) => "TX_TL_LC",
+            TxLcLm(_) => "TX_LC_LM",
             EM(_) => "EM",
             EI => "EI",
             HR(_) => "HR",
@@ -263,9 +284,11 @@ impl DataType {
             AK(sv) => sv.to_vec(),
             RD(sv) => sv.to_vec(),
             TE => vec![],
-            TL => vec![],
+            TL(s) => vec![s.to_owned()],
             TU => vec![],
-            TX => vec![],
+            TX(sv) => sv.to_vec(),
+            TxTlLc((s, f)) => vec![s.to_owned(), f.to_string()],
+            TxLcLm(v) => v.iter().map(|p| p.to_string()).collect(),
             EM(sv) => sv.to_vec(),
             EI => vec![],
             HR(v) => v.iter().map(|p| p.to_string()).collect(),
@@ -334,6 +357,8 @@ pub fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> 
         "RD" => Ok(DataType::RD(to_string_vec(record, skip_to_payload))),
         "UN" => Ok(DataType::UN(to_string_vec(record, skip_to_payload))),
         "EM" => Ok(DataType::EM(to_string_vec(record, skip_to_payload))),
+        "TL" => Ok(DataType::TL(to_string(record, skip_to_payload)?)),
+        "TX" => Ok(DataType::TX(to_string_vec(record, skip_to_payload))),
         // TODO: add data types
         _ => Err(anyhow!("Unknown Type: {}, {:?}", type_str, record)),
     }
@@ -373,4 +398,26 @@ fn to_string_vec(record: &StringRecord, index_from: usize) -> Vec<String> {
         .skip(index_from)
         .map(|str| str.to_owned())
         .collect()
+}
+
+// Time Syncs
+#[derive(Debug, Clone)]
+pub struct TimeSync {
+    pub rd: f32,
+    pub ts_received: f32,
+    pub ts_sent: String,
+    pub ak: f32,
+    pub round_trip: f32,
+}
+
+impl Csv for TimeSync {
+    fn csv(&self) -> Vec<StringRecord> {
+        vec![StringRecord::from(vec![
+            self.rd.to_string(),
+            self.ts_received.to_string(),
+            self.ts_sent.to_owned(),
+            self.ak.to_string(),
+            self.round_trip.to_string(),
+        ])]
+    }
 }
