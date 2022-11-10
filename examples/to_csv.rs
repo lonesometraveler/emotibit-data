@@ -37,6 +37,15 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
         writeln!(output, "{}", err)?;
     }
 
+    // Write TimeSyncs
+    output_file.set_file_name("timesyncs.csv");
+    let syncs = parser::find_syncs(&datapackets)?;
+    let mut writer = writer::ParserWriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+
+    for packet in syncs {
+        writer.write(packet)?;
+    }
+
     // Extract TypeTags
     let set: HashSet<&str> = HashSet::from_iter(
         datapackets
