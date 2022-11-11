@@ -40,7 +40,8 @@ fn split_tx_or_as_is(x: DataPacket) -> Result<DataPacket> {
 
             if let Some(data_type) = data_type {
                 return Ok(DataPacket {
-                    timestamp: x.timestamp,
+                    host_timestamp: f64::NAN,
+                    emotibit_timestamp: x.emotibit_timestamp,
                     packet_id: x.packet_id,
                     data_points: x.data_points,
                     version: x.version,
@@ -73,11 +74,11 @@ pub fn find_syncs(packets: &[Result<DataPacket>]) -> Result<Vec<TimeSync>> {
     for (rd, tl, ak) in izip!(&syncs, &syncs2[1..], &syncs3[2..]) {
         if let (RD(_), TL(date_time), AK(_)) = (&rd.data_type, &tl.data_type, &ak.data_type) {
             vec.push(TimeSync {
-                rd: rd.timestamp,
-                ts_received: tl.timestamp,
+                rd: rd.emotibit_timestamp,
+                ts_received: tl.emotibit_timestamp,
                 ts_sent: date_time.to_owned(),
-                ak: ak.timestamp,
-                round_trip: tl.timestamp - rd.timestamp,
+                ak: ak.emotibit_timestamp,
+                round_trip: tl.emotibit_timestamp - rd.emotibit_timestamp,
             });
         }
     }
@@ -89,7 +90,7 @@ pub fn generate_sync_map(packets: &[Result<DataPacket>]) -> Result<TimeSyncMap> 
     let filtered = packets
         .iter()
         .filter_map(|result| result.as_ref().ok())
-        .map(|p| p.timestamp);
+        .map(|p| p.emotibit_timestamp);
 
     let emotibit_start_time = filtered.clone().reduce(f64::min).unwrap();
     let emotibit_end_time = filtered.reduce(f64::max).unwrap();
