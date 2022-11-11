@@ -1,5 +1,6 @@
-use crate::types::{DataPacket, DataType, TimeSync};
+use crate::types::{DataPacket, DataType, TimeSync, TimeSyncMap};
 use anyhow::{anyhow, Result};
+use chrono::{offset::TimeZone, DateTime, Local, NaiveDateTime};
 use csv::ReaderBuilder;
 use itertools::izip;
 
@@ -51,6 +52,7 @@ fn split_tx_or_as_is(x: DataPacket) -> Result<DataPacket> {
     Ok(x)
 }
 
+// TimeSync
 // Find a block of RD, TL, and AK
 pub fn find_syncs(packets: &[Result<DataPacket>]) -> Result<Vec<TimeSync>> {
     use DataType::*;
@@ -79,4 +81,86 @@ pub fn find_syncs(packets: &[Result<DataPacket>]) -> Result<Vec<TimeSync>> {
         }
     }
     Ok(vec)
+}
+
+pub fn generate_sync_map(packets: &[Result<DataPacket>]) -> Result<TimeSyncMap> {
+    let filtered = packets
+        .iter()
+        .filter_map(|result| result.as_ref().ok())
+        .map(|p| p.timestamp);
+
+    let emotibit_start_time = filtered.clone().reduce(f64::min).unwrap();
+    let emotibit_end_time = filtered.reduce(f64::max).unwrap();
+
+    let syncs = find_syncs(packets)?;
+
+    let quartiles: Vec<&[TimeSync]> = syncs
+        .chunks(num::integer::div_ceil(syncs.len(), 4))
+        .collect();
+
+    let best_timestamps = match (
+        shortest_round_trip(quartiles.get(0).unwrap()),
+        shortest_round_trip(quartiles.get(1).unwrap()),
+        shortest_round_trip(quartiles.get(2).unwrap()),
+        shortest_round_trip(quartiles.get(3).unwrap()),
+    ) {
+        (Some(x), _, _, Some(y)) => Some((x, y)),
+        (Some(x), _, Some(y), _) => Some((x, y)),
+        (_, Some(x), _, Some(y)) => Some((x, y)),
+        (_, Some(x), Some(y), _) => Some((x, y)),
+        (Some(x), Some(y), _, _) => Some((x, y)),
+        (_, _, Some(x), Some(y)) => Some((x, y)),
+        // TODO: add data from the same quartile
+        _ => None,
+    };
+
+    if let Some(best_timestamps) = best_timestamps {
+        let (tl0, te0) = get_c_e(&best_timestamps.0);
+        let (tl1, te1) = get_c_e(&best_timestamps.1);
+
+        Ok(TimeSyncMap {
+            te0,
+            te1,
+            tl0,
+            tl1,
+            syncs_received: syncs.len(),
+            emotibit_start_time,
+            emotibit_end_time,
+            parse_version: "lonesomtraveler.0.0.1".to_owned(),
+        })
+    } else {
+        Err(anyhow!("Cannot generate a time sync map"))
+    }
+}
+
+fn shortest_round_trip(vec: &[TimeSync]) -> Option<TimeSync> {
+    let shortest = vec.iter().map(|x| x.round_trip).reduce(f64::min).unwrap();
+    for ts in vec.iter() {
+        if ts.round_trip == shortest {
+            return Some(ts.clone());
+        }
+    }
+    None
+}
+
+// TODO: rename function
+fn get_c_e(sync: &TimeSync) -> (f64, f64) {
+    let e0 = sync.ts_received;
+    let ts = &sync.ts_sent;
+
+    let pos = ts.rfind('-').unwrap();
+    let (head, tail) = ts.split_at(pos);
+
+    let date_time =
+        NaiveDateTime::parse_from_str(head, "%Y-%m-%d_%H-%M-%S").expect("Invalid format");
+    let date_time: DateTime<Local> = Local.from_local_datetime(&date_time).unwrap();
+    let c = date_time.timestamp();
+
+    let last_n_char = tail.len() - 1;
+    let m: f64 = tail[1..].parse().unwrap();
+    let m = m / 10_i32.pow(last_n_char.try_into().unwrap()) as f64;
+
+    let mut c0 = (c as f64) + m;
+    c0 += sync.round_trip as f64 / 2_f64 / 1000_f64;
+    (c0, e0)
 }

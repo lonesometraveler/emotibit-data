@@ -18,7 +18,7 @@ pub trait Csv {
 
 #[derive(Debug, Clone)]
 pub struct DataPacket {
-    pub timestamp: f32,
+    pub timestamp: f64,
     pub packet_id: u32,
     pub data_points: u8,
     pub version: u8,
@@ -403,11 +403,11 @@ fn to_string_vec(record: &StringRecord, index_from: usize) -> Vec<String> {
 // Time Syncs
 #[derive(Debug, Clone)]
 pub struct TimeSync {
-    pub rd: f32,
-    pub ts_received: f32,
+    pub rd: f64,
+    pub ts_received: f64,
     pub ts_sent: String,
-    pub ak: f32,
-    pub round_trip: f32,
+    pub ak: f64,
+    pub round_trip: f64,
 }
 
 impl Csv for TimeSync {
@@ -418,6 +418,33 @@ impl Csv for TimeSync {
             self.ts_sent.to_owned(),
             self.ak.to_string(),
             self.round_trip.to_string(),
+        ])]
+    }
+}
+
+#[derive(Debug)]
+pub struct TimeSyncMap {
+    pub te0: f64,
+    pub te1: f64,
+    pub tl0: f64,
+    pub tl1: f64,
+    pub syncs_received: usize,
+    pub emotibit_start_time: f64,
+    pub emotibit_end_time: f64,
+    pub parse_version: String,
+}
+
+impl Csv for TimeSyncMap {
+    fn csv(&self) -> Vec<StringRecord> {
+        vec![StringRecord::from(vec![
+            self.te0.to_string(),
+            self.te1.to_string(),
+            self.tl0.to_string(),
+            self.tl1.to_string(),
+            self.syncs_received.to_string(),
+            self.emotibit_start_time.to_string(),
+            self.emotibit_end_time.to_string(),
+            self.parse_version.to_owned(),
         ])]
     }
 }
