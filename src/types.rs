@@ -11,8 +11,10 @@ pub trait Csv {
 /// Emotibit Data Packet
 #[derive(Debug, Clone)]
 pub struct DataPacket {
+    /// Local timestamp on a host PC
+    pub host_timestamp: f64,
     /// Milliseconds since start of EmotiBit
-    pub timestamp: f64,
+    pub emotibit_timestamp: f64,
     /// Packet count since start of EmotiBit
     pub packet_id: u32,
     /// Number of data points in the payload
@@ -31,7 +33,8 @@ impl Csv for DataPacket {
         let payload = Self::parse_data_type(&self.data_type, self.data_type.payload());
         for p in payload {
             vec.push(StringRecord::from(vec![
-                self.timestamp.to_string(),
+                self.host_timestamp.to_string(),
+                self.emotibit_timestamp.to_string(),
                 self.packet_id.to_string(),
                 self.data_points.to_string(),
                 self.data_type.as_str().to_owned(),
@@ -56,6 +59,20 @@ impl DataPacket {
             _ => payload,
         }
     }
+    /// Performs linear interpolation based on `TimeSyncMap` and returns a new `DataPacket` with a host timestamp.
+    pub fn inject_host_timestamp(self, map: &TimeSyncMap) -> Self {
+        let timestamp = map.tl0
+            + (map.tl1 - map.tl0) * (self.emotibit_timestamp - map.te0) / (map.te1 - map.te0);
+        DataPacket {
+            host_timestamp: timestamp,
+            emotibit_timestamp: self.emotibit_timestamp,
+            packet_id: self.packet_id,
+            data_points: self.data_points,
+            version: self.version,
+            reliability: self.reliability,
+            data_type: self.data_type,
+        }
+    }
 }
 
 impl TryFrom<&StringRecord> for DataPacket {
@@ -71,7 +88,8 @@ impl TryFrom<&StringRecord> for DataPacket {
         ) = (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4), r.get(5))
         {
             Ok(DataPacket {
-                timestamp: timestamp.parse()?,
+                host_timestamp: f64::NAN,
+                emotibit_timestamp: timestamp.parse()?,
                 packet_id: packet_id.parse()?,
                 data_points: data_points.parse()?,
                 version: version.parse()?,
