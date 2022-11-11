@@ -40,7 +40,7 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
     // Write TimeSyncs
     output_file.set_file_name(format!("{}_timesyncs.csv", filename));
     let syncs = parser::find_syncs(&datapackets)?;
-    let mut writer = writer::ParserWriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
 
     for packet in syncs {
         writer.write(packet)?;
@@ -49,7 +49,7 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
     // Write TimeSyncsMap
     output_file.set_file_name(format!("{}_timeSyncMap.csv", filename));
     let map = parser::generate_sync_map(&datapackets)?;
-    let mut writer = writer::ParserWriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
     writer.write(map)?;
 
     // Extract TypeTags
@@ -67,8 +67,7 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
 
     for t in set.iter() {
         output_file.set_file_name(format!("{}_{}.csv", filename, t));
-        let mut writer =
-            writer::ParserWriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+        let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
 
         for packet in packets
             .iter()

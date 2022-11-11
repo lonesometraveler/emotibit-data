@@ -1,9 +1,11 @@
+//! Parser functions
 use crate::types::{DataPacket, DataType, TimeSync, TimeSyncMap};
 use anyhow::{anyhow, Result};
 use chrono::{offset::TimeZone, DateTime, Local, NaiveDateTime};
 use csv::ReaderBuilder;
 use itertools::izip;
 
+/// Reads a csv file and creates `DataPacket`s
 pub fn get_packets(file_path: &str) -> Result<Vec<Result<DataPacket>>> {
     let mut vec: Vec<Result<DataPacket>> = Vec::new();
 
@@ -52,8 +54,7 @@ fn split_tx_or_as_is(x: DataPacket) -> Result<DataPacket> {
     Ok(x)
 }
 
-// TimeSync
-// Find a block of RD, TL, and AK
+/// Finds blocks of RD, TL, and AK and creates `TimeSync`s
 pub fn find_syncs(packets: &[Result<DataPacket>]) -> Result<Vec<TimeSync>> {
     use DataType::*;
     let mut vec = vec![];
@@ -83,6 +84,7 @@ pub fn find_syncs(packets: &[Result<DataPacket>]) -> Result<Vec<TimeSync>> {
     Ok(vec)
 }
 
+/// Creates a `TimeSyncMap`
 pub fn generate_sync_map(packets: &[Result<DataPacket>]) -> Result<TimeSyncMap> {
     let filtered = packets
         .iter()

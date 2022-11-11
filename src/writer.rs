@@ -1,11 +1,14 @@
+//! Writer types and functions
 use crate::types::Csv;
 use anyhow::Result;
 
-pub struct ParserWriter {
+/// Use `WriterBuilder` to build this struct.
+pub struct Writer {
     writer: csv::Writer<std::fs::File>,
 }
 
-impl ParserWriter {
+impl Writer {
+    /// Writes a `DataPacket` to a file
     pub fn write<T: Csv>(&mut self, datapacket: T) -> Result<()> {
         for item in datapacket.csv() {
             self.writer.write_record(&item)?;
@@ -15,25 +18,26 @@ impl ParserWriter {
     }
 }
 
-pub struct ParserWriterBuilder {
+/// Builder struct for `Writer`
+pub struct WriterBuilder {
     builder: csv::WriterBuilder,
 }
 
-impl Default for ParserWriterBuilder {
+impl Default for WriterBuilder {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl ParserWriterBuilder {
+impl WriterBuilder {
     pub fn new() -> Self {
-        ParserWriterBuilder {
+        WriterBuilder {
             builder: csv::WriterBuilder::new(),
         }
     }
-
-    pub fn from_path(mut self, path: &str) -> Result<ParserWriter> {
-        Ok(ParserWriter {
+    /// Creates `Writer` with a flie path
+    pub fn from_path(mut self, path: &str) -> Result<Writer> {
+        Ok(Writer {
             writer: self.builder.flexible(true).from_path(path)?,
         })
     }

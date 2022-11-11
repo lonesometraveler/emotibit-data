@@ -1,28 +1,27 @@
-// Raw data packet architecture
-// TIMESTAMP-PACKET#-#DATAPOINTS-TYPETAG-VERSION-RELIABILITY-PAYLOAD
-// Timestamp: milliseconds since start of EmotiBit
-// Packet Number: packet count since start of EmotiBit
-// Number of Datapoints: Number of data points in the payload
-// TypeTag: type of data being sent
-// Version: version of packet protocol
-// Reliability: data reliability score out of 100, currently always 100
-// Payload: data to send
-
+//! Types for this crate
 use anyhow::{anyhow, Result};
 use csv::StringRecord;
 use std::str::FromStr;
 
+/// Returns CSV values
 pub trait Csv {
     fn csv(&self) -> Vec<StringRecord>;
 }
 
+/// Emotibit Data Packet
 #[derive(Debug, Clone)]
 pub struct DataPacket {
+    /// Milliseconds since start of EmotiBit
     pub timestamp: f64,
+    /// Packet count since start of EmotiBit
     pub packet_id: u32,
+    /// Number of data points in the payload
     pub data_points: u8,
+    /// Version of packet protocol
     pub version: u8,
+    /// Data reliability score out of 100, currently always 100
     pub reliability: u8,
+    /// Type of data being sent and its payload
     pub data_type: DataType,
 }
 
@@ -44,6 +43,7 @@ impl Csv for DataPacket {
         vec
     }
 }
+
 impl DataPacket {
     fn parse_data_type(data_type: &DataType, payload: Vec<String>) -> Vec<String> {
         use DataType::*;
@@ -102,38 +102,64 @@ fn string_to_data() {
     assert_eq!(packet.data_points, 10);
 }
 
+/// Emotibit data type
 #[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
+    /// EDA- Electrodermal Activity
     EA(Vec<f32>),
+    /// EDL- Electrodermal Level
     EL(Vec<f32>),
+    /// EDR- Electrodermal Response (EmotiBit V4+ combines ER into EA signal)
     ER(Vec<f32>),
+    /// PPG Infrared
     PI(Vec<u32>),
+    /// PPG Red
     PR(Vec<u32>),
+    /// PPG Green
     PG(Vec<u32>),
     O2,
+    /// Temperature 0
     T0(Vec<f32>),
+    /// Temperature 1
     T1(Vec<f32>),
+    /// Temperature via Medical-grade Thermopile (only on EmotiBit MD)
     TH(Vec<f32>),
+    /// Humidity (only on EmotiBit Alpha/Beta V1, V2, V3)
     H0,
+    /// Accelerometer X
     AX(Vec<f32>),
+    /// Accelerometer Y
     AY(Vec<f32>),
+    /// Accelerometer Z
     AZ(Vec<f32>),
+    /// Gyroscope X
     GX(Vec<f32>),
+    /// Gyroscope Y
     GY(Vec<f32>),
+    /// Gyroscope Z
     GZ(Vec<f32>),
+    /// Magnetometer X
     MX(Vec<i32>),
+    /// Magnetometer Y
     MY(Vec<i32>),
+    /// Magnetometer Z
     MZ(Vec<i32>),
+    /// Battery Voltage
     BV(Vec<f32>),
-    BATLV(Vec<u32>), // B%
+    /// Battery Percentage Remaining (B%)
+    BATLV(Vec<u32>),
     BS,
     BL,
+    /// Data Clipping, TypeTag in Payload
     DC,
+    /// Data Overflow, TypeTag in Payload
     DO,
     SD,
+    /// Reset
     RS,
     DB,
     AK(Vec<String>),
+    /// Request Data, TypeTag in Payload
     RD(Vec<String>),
     TE,
     TL(String),
@@ -142,22 +168,36 @@ pub enum DataType {
     TxTlLc((String, f32)),
     TxLcLm(Vec<f32>),
     EM(Vec<String>),
+    /// EmotiBit Info Json
     EI,
+    /// Heart Rate
     HR(Vec<i32>),
+    /// Heart Inter-beat Interval
     BI(Vec<i32>),
+    /// Skin Conductance Response (SCR) Amplitude
     SA(Vec<f32>),
+    /// Skin Conductance Response (SCR) Frequency
     SF(Vec<f32>),
+    /// Skin Conductance Response (SCR) Rise Time
     SR(Vec<f32>),
     // Computer data TypeTags (sent over reliable channel e.g. Control)
+    /// [GPS latitude and Longitude][GPS]
     GL,
+    /// [GPS Speed][GPS]
     GS,
+    /// [GPS Bearing][GPS]
     GB,
-    BA,
+    /// [GPS Altitude][GPS]
+    GA,
+    /// User Note
     UN(Vec<String>),
+    /// LSL Marker/message
     LM,
-    // Control TypeTags
+    /// Record begin (Include timestamp in Data)
     RB(String),
+    /// Record End
     RE,
+    /// Mode Hibernate
     MN,
     ML,
     MM,
@@ -168,10 +208,14 @@ pub enum DataType {
     SMINUS, // S-
     // Advertising TypeTags
     PN,
+    // TODO: PI	Ping
+    /// Pong
     PO,
+    /// Hello EmotiBit, used to establish communication
     HE,
     HH,
     EC,
+    // TODO: D%	SD card percent capacity filled
 }
 
 impl DataType {
@@ -226,7 +270,7 @@ impl DataType {
             GL => "GL",
             GS => "GS",
             GB => "GB",
-            BA => "BA",
+            GA => "GA",
             UN(_) => "UN",
             LM => "LM",
             // Control TypeTags
@@ -324,7 +368,7 @@ impl DataType {
     }
 }
 
-pub fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> {
+fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> {
     let skip_to_payload = 6_usize;
     match type_str {
         "RB" => Ok(DataType::RB(to_string(record, skip_to_payload)?)),
@@ -400,13 +444,18 @@ fn to_string_vec(record: &StringRecord, index_from: usize) -> Vec<String> {
         .collect()
 }
 
-// Time Syncs
+/// Time Syncs
 #[derive(Debug, Clone)]
 pub struct TimeSync {
+    /// Emotibit local time when RD was sent
     pub rd: f64,
+    /// Emotibit local time when TS was received
     pub ts_received: f64,
+    /// Timestamp at the moment TS was sent in `%Y-%m-%d_%H-%M-%S_f` format
     pub ts_sent: String,
+    /// Emotibit local time when AK was sent
     pub ak: f64,
+    /// Duration for the round trip Emotibit -> PC -> Emotibit
     pub round_trip: f64,
 }
 
@@ -422,6 +471,7 @@ impl Csv for TimeSync {
     }
 }
 
+/// Time Sync Map
 #[derive(Debug)]
 pub struct TimeSyncMap {
     pub te0: f64,
