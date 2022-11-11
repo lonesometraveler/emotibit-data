@@ -344,7 +344,7 @@ impl DataType {
             GL => vec![],
             GS => vec![],
             GB => vec![],
-            BA => vec![],
+            GA => vec![],
             UN(sv) => sv.to_vec(),
             LM => vec![],
             // // Control TypeTags
