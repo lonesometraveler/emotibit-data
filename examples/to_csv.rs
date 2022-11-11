@@ -46,11 +46,8 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
         writer.write(packet)?;
     }
 
-    // Write TimeSyncsMap
-    output_file.set_file_name(format!("{}_timeSyncMap.csv", filename));
+    // Create TimeSyncMap
     let map = parser::generate_sync_map(&datapackets)?;
-    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
-    writer.write(map)?;
 
     // Extract TypeTags
     let set: HashSet<&str> = HashSet::from_iter(
@@ -63,6 +60,7 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
     let packets: Vec<DataPacket> = datapackets
         .into_iter()
         .filter_map(|result| result.ok())
+        .map(|p| p.inject_host_timestamp(&map))
         .collect();
 
     for t in set.iter() {
@@ -77,6 +75,11 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
             writer.write(packet)?;
         }
     }
+
+    // Write TimeSyncsMap
+    output_file.set_file_name(format!("{}_timeSyncMap.csv", filename));
+    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+    writer.write(map)?;
 
     Ok(())
 }
