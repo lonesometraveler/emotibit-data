@@ -1,4 +1,5 @@
 use anyhow::Result;
+use csv::StringRecord;
 use emotibit_data::{parser, types::DataPacket, writer};
 use std::{collections::HashSet, fs::File, io::Write, path::PathBuf};
 
@@ -39,15 +40,20 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
 
     // Write TimeSyncs
     output_file.set_file_name(format!("{}_timesyncs.csv", filename));
-    let syncs = parser::find_syncs(&datapackets)?;
     let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
-
-    for packet in syncs {
-        writer.write(packet)?;
+    match parser::find_syncs(&datapackets) {
+        Ok(syncs) => {
+            let header =
+                StringRecord::from(vec!["RD", "TS_received", "TS_sent", "AK", "RoundTrip"]);
+            writer.write(&header)?;
+            for packet in syncs {
+                writer.write(&packet)?;
+            }
+        }
+        Err(e) => {
+            writer.write(&StringRecord::from(vec![format!("{:?}", e)]))?;
+        }
     }
-
-    // Create TimeSyncMap
-    let map = parser::generate_sync_map(&datapackets)?;
 
     // Extract TypeTags
     let set: HashSet<&str> = HashSet::from_iter(
@@ -56,30 +62,61 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
             .map(|result| result.as_ref().unwrap().data_type.as_str()),
     );
 
+    // Write TimeSyncsMap
+    output_file.set_file_name(format!("{}_timeSyncMap.csv", filename));
+    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
+    let syncmap = parser::generate_sync_map(&datapackets);
+    match &syncmap {
+        Ok(map) => {
+            let header = StringRecord::from(vec![
+                "TE0",
+                "TE1",
+                "TL0",
+                "TL1",
+                "TimeSyncsReceived",
+                "EmotiBitStartTime",
+                "EmotiBitEndTime",
+                "DataParserVersion",
+            ]);
+            writer.write(&header)?;
+            writer.write(map)?;
+        }
+        Err(e) => {
+            writer.write(&StringRecord::from(vec![format!("{:?}", e)]))?;
+        }
+    }
+
     // Write Packets
-    let packets: Vec<DataPacket> = datapackets
-        .into_iter()
-        .filter_map(|result| result.ok())
-        .map(|p| p.inject_host_timestamp(&map))
-        .collect();
+    let packets: Vec<DataPacket> = match syncmap {
+        Ok(map) => datapackets
+            .into_iter()
+            .filter_map(|result| result.ok())
+            .map(|p| p.inject_host_timestamp(&map))
+            .collect(),
+        Err(_) => datapackets
+            .into_iter()
+            .filter_map(|result| result.ok())
+            .collect(),
+    };
 
     for t in set.iter() {
         output_file.set_file_name(format!("{}_{}.csv", filename, t));
         let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
-
-        for packet in packets
-            .iter()
-            .cloned()
-            .filter(|x| x.data_type.as_str() == *t)
-        {
+        let header = StringRecord::from(vec![
+            "LocalTimestamp",
+            "EmotiBitTimestamp",
+            "PacketNumber",
+            "DataLength",
+            "TypeTag",
+            "ProtocolVersion",
+            "DataReliability",
+            t,
+        ]);
+        writer.write(&header)?;
+        for packet in packets.iter().filter(|x| x.data_type.as_str() == *t) {
             writer.write(packet)?;
         }
     }
-
-    // Write TimeSyncsMap
-    output_file.set_file_name(format!("{}_timeSyncMap.csv", filename));
-    let mut writer = writer::WriterBuilder::new().from_path(output_file.to_str().unwrap())?;
-    writer.write(map)?;
 
     Ok(())
 }

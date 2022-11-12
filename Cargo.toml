@@ -8,15 +8,15 @@ categories = ["parsing"]
 keywords = ["parser", "parsing", "emotibit"]
 readme = "README.md"
 license = "MIT"
-repository = "https://github.com/lonesometraveler/emotibit-data-rs"
+repository = "https://github.com/lonesometraveler/emotibit-data"
 
 [dependencies]
-csv = "1.1.6"
 anyhow = "1.0"
+chrono = "0.4.22"
+csv = "1.1.6"
+itertools = "0.10.5"
 num = "0.4.0"
 tokio = { version = "1.21.2", features = ["full"], optional = true }
-itertools = "0.10.5"
-chrono = "0.4.22"
 
 [[example]]
 name = "udp_server"
