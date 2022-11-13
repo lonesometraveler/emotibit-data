@@ -1,11 +1,18 @@
 //! Types for this crate
 use anyhow::{anyhow, Result};
 use csv::StringRecord;
+use itertools::Itertools;
 use std::str::FromStr;
 
 /// Returns CSV values
 pub trait Csv {
     fn csv(&self) -> Vec<StringRecord>;
+}
+
+impl Csv for StringRecord {
+    fn csv(&self) -> Vec<StringRecord> {
+        vec![self.clone()]
+    }
 }
 
 /// Emotibit Data Packet
@@ -135,15 +142,12 @@ pub enum DataType {
     PR(Vec<u32>),
     /// PPG Green
     PG(Vec<u32>),
-    O2,
     /// Temperature 0
     T0(Vec<f32>),
     /// Temperature 1
     T1(Vec<f32>),
     /// Temperature via Medical-grade Thermopile (only on EmotiBit MD)
     TH(Vec<f32>),
-    /// Humidity (only on EmotiBit Alpha/Beta V1, V2, V3)
-    H0,
     /// Accelerometer X
     AX(Vec<f32>),
     /// Accelerometer Y
@@ -166,28 +170,14 @@ pub enum DataType {
     BV(Vec<f32>),
     /// Battery Percentage Remaining (B%)
     BATLV(Vec<u32>),
-    BS,
-    BL,
-    /// Data Clipping, TypeTag in Payload
-    DC,
-    /// Data Overflow, TypeTag in Payload
-    DO,
-    SD,
-    /// Reset
-    RS,
-    DB,
     AK(Vec<String>),
     /// Request Data, TypeTag in Payload
     RD(Vec<String>),
-    TE,
     TL(String),
-    TU,
     TX(Vec<String>),
     TxTlLc((String, f32)),
     TxLcLm(Vec<f32>),
     EM(Vec<String>),
-    /// EmotiBit Info Json
-    EI,
     /// Heart Rate
     HR(Vec<i32>),
     /// Heart Inter-beat Interval
@@ -198,42 +188,12 @@ pub enum DataType {
     SF(Vec<f32>),
     /// Skin Conductance Response (SCR) Rise Time
     SR(Vec<f32>),
-    // Computer data TypeTags (sent over reliable channel e.g. Control)
-    /// [GPS latitude and Longitude][GPS]
-    GL,
-    /// [GPS Speed][GPS]
-    GS,
-    /// [GPS Bearing][GPS]
-    GB,
-    /// [GPS Altitude][GPS]
-    GA,
     /// User Note
     UN(Vec<String>),
     /// LSL Marker/message
-    LM,
+    LM(String),
     /// Record begin (Include timestamp in Data)
     RB(String),
-    /// Record End
-    RE,
-    /// Mode Hibernate
-    MN,
-    ML,
-    MM,
-    MO,
-    MH,
-    ED,
-    SPLUS,  // S+
-    SMINUS, // S-
-    // Advertising TypeTags
-    PN,
-    // TODO: PI	Ping
-    /// Pong
-    PO,
-    /// Hello EmotiBit, used to establish communication
-    HE,
-    HH,
-    EC,
-    // TODO: D%	SD card percent capacity filled
 }
 
 impl DataType {
@@ -246,11 +206,9 @@ impl DataType {
             PI(_) => "PI",
             PR(_) => "PR",
             PG(_) => "PG",
-            O2 => "O2",
             T0(_) => "T0",
             T1(_) => "T1",
             TH(_) => "TH",
-            H0 => "H0",
             AX(_) => "AX",
             AY(_) => "AY",
             AZ(_) => "AZ",
@@ -262,52 +220,23 @@ impl DataType {
             MZ(_) => "MZ",
             BV(_) => "BV",
             BATLV(_) => "B%",
-            BS => "BS",
-            BL => "BL",
-            DC => "DC",
-            DO => "DO",
-            SD => "SD",
-            RS => "RS",
-            DB => "DB",
             AK(_) => "AK",
             RD(_) => "RD",
-            TE => "TE",
             TL(_) => "TL",
-            TU => "TU",
             TX(_) => "TX",
             TxTlLc(_) => "TX_TL_LC",
             TxLcLm(_) => "TX_LC_LM",
             EM(_) => "EM",
-            EI => "EI",
             HR(_) => "HR",
             BI(_) => "BI",
             SA(_) => "SA",
             SF(_) => "SF",
             SR(_) => "SR",
             // Computer data TypeTags (sent over reliable channel e.g. Control)
-            GL => "GL",
-            GS => "GS",
-            GB => "GB",
-            GA => "GA",
             UN(_) => "UN",
-            LM => "LM",
+            LM(_) => "LM",
             // Control TypeTags
             RB(_) => "RB",
-            RE => "RE",
-            MN => "MN",
-            ML => "ML",
-            MM => "MM",
-            MO => "MO",
-            MH => "MH",
-            ED => "ED",
-            SPLUS => "S+",  // S+
-            SMINUS => "S-", // S-
-            // Advertising TypeTags
-            PN => "PN",
-            PO => "PO",
-            HE => "HE",
-            HH => "HH",
-            EC => "EC",
         }
     }
 
@@ -320,11 +249,9 @@ impl DataType {
             PI(v) => v.iter().map(|p| p.to_string()).collect(),
             PR(v) => v.iter().map(|p| p.to_string()).collect(),
             PG(v) => v.iter().map(|p| p.to_string()).collect(),
-            O2 => vec![],
             T0(v) => v.iter().map(|p| p.to_string()).collect(),
             T1(v) => v.iter().map(|p| p.to_string()).collect(),
             TH(v) => v.iter().map(|p| p.to_string()).collect(),
-            H0 => vec![],
             AX(v) => v.iter().map(|p| p.to_string()).collect(),
             AY(v) => v.iter().map(|p| p.to_string()).collect(),
             AZ(v) => v.iter().map(|p| p.to_string()).collect(),
@@ -336,52 +263,23 @@ impl DataType {
             MZ(v) => v.iter().map(|p| p.to_string()).collect(),
             BV(v) => v.iter().map(|p| p.to_string()).collect(),
             BATLV(v) => v.iter().map(|p| p.to_string()).collect(),
-            BS => vec![],
-            BL => vec![],
-            DC => vec![],
-            DO => vec![],
-            SD => vec![],
-            RS => vec![],
-            DB => vec![],
             AK(sv) => sv.to_vec(),
             RD(sv) => sv.to_vec(),
-            TE => vec![],
             TL(s) => vec![s.to_owned()],
-            TU => vec![],
             TX(sv) => sv.to_vec(),
             TxTlLc((s, f)) => vec![s.to_owned(), f.to_string()],
             TxLcLm(v) => v.iter().map(|p| p.to_string()).collect(),
             EM(sv) => sv.to_vec(),
-            EI => vec![],
             HR(v) => v.iter().map(|p| p.to_string()).collect(),
             BI(v) => v.iter().map(|p| p.to_string()).collect(),
             SA(v) => v.iter().map(|p| p.to_string()).collect(),
             SF(v) => v.iter().map(|p| p.to_string()).collect(),
             SR(v) => v.iter().map(|p| p.to_string()).collect(),
             // // Computer data TypeTags (sent over reliable channel e.g. Control)
-            GL => vec![],
-            GS => vec![],
-            GB => vec![],
-            GA => vec![],
             UN(sv) => sv.to_vec(),
-            LM => vec![],
+            LM(s) => vec![s.to_owned()],
             // // Control TypeTags
             RB(s) => vec![s.to_owned()],
-            RE => vec![],
-            MN => vec![],
-            ML => vec![],
-            MM => vec![],
-            MO => vec![],
-            MH => vec![],
-            ED => vec![],
-            SPLUS => vec![],  // S+
-            SMINUS => vec![], // S-
-            // // Advertising TypeTags
-            PN => vec![],
-            PO => vec![],
-            HE => vec![],
-            HH => vec![],
-            EC => vec![],
         }
     }
 }
@@ -389,7 +287,7 @@ impl DataType {
 fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> {
     let skip_to_payload = 6_usize;
     match type_str {
-        "RB" => Ok(DataType::RB(to_string(record, skip_to_payload)?)),
+        "RB" => Ok(DataType::RB(to_string(record, skip_to_payload))),
         "AK" => Ok(DataType::AK(to_string_vec(record, skip_to_payload))),
         "EA" => Ok(DataType::EA(to_vec::<f32>(record, skip_to_payload)?)),
         "EL" => Ok(DataType::EL(to_vec::<f32>(record, skip_to_payload)?)),
@@ -419,20 +317,17 @@ fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> {
         "RD" => Ok(DataType::RD(to_string_vec(record, skip_to_payload))),
         "UN" => Ok(DataType::UN(to_string_vec(record, skip_to_payload))),
         "EM" => Ok(DataType::EM(to_string_vec(record, skip_to_payload))),
-        "TL" => Ok(DataType::TL(to_string(record, skip_to_payload)?)),
+        "TL" => Ok(DataType::TL(to_string(record, skip_to_payload))),
         "TX" => Ok(DataType::TX(to_string_vec(record, skip_to_payload))),
+        "LM" => Ok(DataType::LM(to_string(record, skip_to_payload))),
         // TODO: add data types
         _ => Err(anyhow!("Unknown Type: {}, {:?}", type_str, record)),
     }
 }
 
 // Helpers
-fn to_string(record: &StringRecord, index: usize) -> Result<String> {
-    if let Some(data) = record.get(index) {
-        Ok(data.to_string())
-    } else {
-        Err(anyhow!("Parse Error: {:?}", record))
-    }
+fn to_string(record: &StringRecord, index: usize) -> String {
+    record.iter().skip(index).join(",")
 }
 
 fn to_vec<T>(record: &StringRecord, index_from: usize) -> Result<Vec<T>>

@@ -9,7 +9,7 @@ pub struct Writer {
 
 impl Writer {
     /// Writes a `DataPacket` to a file
-    pub fn write<T: Csv>(&mut self, datapacket: T) -> Result<()> {
+    pub fn write<T: Csv>(&mut self, datapacket: &T) -> Result<()> {
         for item in datapacket.csv() {
             self.writer.write_record(&item)?;
         }
