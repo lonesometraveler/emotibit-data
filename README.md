@@ -6,12 +6,12 @@
 
 A Rust library for parsing raw EmotiBit data.
 
-[Emotibit](https://www.emotibit.com) is a wearable sensor module for capturing high-quality emotional, physiological, and movement data. Easy-to-use and scientifically-validated sensing lets you enjoy wireless data streaming to any platform or direct data recording to the built-in SD card.
+[EmotiBit](https://www.emotibit.com) is a wearable sensor module for capturing high-quality emotional, physiological, and movement data. Easy-to-use and scientifically-validated sensing lets you enjoy wireless data streaming to any platform or direct data recording to the built-in SD card.
 
 
 ## Document
 
-* [API reference](https://docs.rs/crate/emotibit-data)
+* [API reference](https://docs.rs/emotibit-data/latest/emotibit_data/)
 
 ## Examples
 
