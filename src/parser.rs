@@ -4,12 +4,13 @@ use anyhow::{anyhow, Result};
 use chrono::{offset::TimeZone, DateTime, Local, NaiveDateTime};
 use csv::ReaderBuilder;
 use itertools::izip;
+use std::path::Path;
 
 const PARSER_VERSION: &str = "0.1.0";
 const MIN_SYNCS_REQUIRED: usize = 3;
 
 /// Reads a csv file and creates `DataPacket`s
-pub fn get_packets(file_path: &str) -> Result<Vec<Result<DataPacket>>> {
+pub fn get_packets<T: AsRef<Path>>(file_path: T) -> Result<Vec<Result<DataPacket>>> {
     let mut vec: Vec<Result<DataPacket>> = Vec::new();
     let mut reader = ReaderBuilder::new()
         .flexible(true)
