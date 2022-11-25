@@ -17,17 +17,9 @@ fn read_write(path_buf: Option<PathBuf>) -> Result<()> {
         .and_then(|name| name.to_str())
         .unwrap_or("default");
 
-    let (datapackets, errors): (Vec<_>, Vec<_>) = parser::get_packets(
-        &path_buf
-            .as_ref()
-            .unwrap()
-            .clone()
-            .into_os_string()
-            .into_string()
-            .unwrap(),
-    )?
-    .into_iter()
-    .partition(Result::is_ok);
+    let (datapackets, errors): (Vec<_>, Vec<_>) = parser::get_packets(path_buf.as_ref().unwrap())?
+        .into_iter()
+        .partition(Result::is_ok);
 
     let mut output_file = path_buf.clone().unwrap();
     output_file.set_file_name(format!("{}_ERROR.csv", filename));
