@@ -2,6 +2,7 @@
 use anyhow::{anyhow, Result};
 use csv::StringRecord;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 /// Returns CSV values
@@ -16,10 +17,10 @@ impl Csv for StringRecord {
 }
 
 /// Emotibit Data Packet
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct DataPacket {
     /// Local timestamp on a host PC
-    pub host_timestamp: f64,
+    pub host_timestamp: Option<f64>,
     /// Milliseconds since start of EmotiBit
     pub emotibit_timestamp: f64,
     /// Packet count since start of EmotiBit
@@ -39,8 +40,12 @@ impl Csv for DataPacket {
         let mut vec = Vec::new();
         let payload = Self::parse_data_type(&self.data_type, self.data_type.payload());
         for p in payload {
+            let host_timestamp = match self.host_timestamp {
+                Some(n) => n.to_string(),
+                None => "NaN".to_owned(),
+            };
             vec.push(StringRecord::from(vec![
-                self.host_timestamp.to_string(),
+                host_timestamp,
                 self.emotibit_timestamp.to_string(),
                 self.packet_id.to_string(),
                 self.data_points.to_string(),
@@ -71,7 +76,7 @@ impl DataPacket {
         let timestamp = map.tl0
             + (map.tl1 - map.tl0) * (self.emotibit_timestamp - map.te0) / (map.te1 - map.te0);
         DataPacket {
-            host_timestamp: timestamp,
+            host_timestamp: Some(timestamp),
             emotibit_timestamp: self.emotibit_timestamp,
             packet_id: self.packet_id,
             data_points: self.data_points,
@@ -95,7 +100,7 @@ impl TryFrom<&StringRecord> for DataPacket {
         ) = (r.get(0), r.get(1), r.get(2), r.get(3), r.get(4), r.get(5))
         {
             Ok(DataPacket {
-                host_timestamp: f64::NAN,
+                host_timestamp: None,
                 emotibit_timestamp: timestamp.parse()?,
                 packet_id: packet_id.parse()?,
                 data_points: data_points.parse()?,
@@ -128,7 +133,7 @@ fn string_to_data() {
 }
 
 /// Emotibit data type
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum DataType {
     /// EDA- Electrodermal Activity
     EA(Vec<f32>),
