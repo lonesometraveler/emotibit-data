@@ -38,7 +38,7 @@ fn split_tx_or_as_is(x: DataPacket) -> Result<DataPacket> {
 
             if let Some(data_type) = data_type {
                 return Ok(DataPacket {
-                    host_timestamp: f64::NAN,
+                    host_timestamp: None,
                     emotibit_timestamp: x.emotibit_timestamp,
                     packet_id: x.packet_id,
                     data_points: x.data_points,
