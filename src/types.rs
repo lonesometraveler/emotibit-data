@@ -116,9 +116,7 @@ impl TryFrom<&StringRecord> for DataPacket {
 impl TryFrom<&str> for DataPacket {
     type Error = anyhow::Error;
     fn try_from(str: &str) -> Result<Self, Self::Error> {
-        let r: Vec<&str> = str.split(',').collect();
-        let r = csv::ByteRecord::from(r);
-        let r = &StringRecord::from_byte_record(r)?;
+        let r = &csv::StringRecord::from(str.split(',').collect::<Vec<_>>());
         r.try_into()
     }
 }
