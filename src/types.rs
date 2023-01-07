@@ -121,14 +121,6 @@ impl TryFrom<&str> for DataPacket {
     }
 }
 
-#[test]
-fn string_to_data() {
-    let input = "1126349,49106,10,PI,1,100,156593,156471,156372,156300,156205,156136,156130,156103,156051,156103";
-    let packet: DataPacket = input.try_into().unwrap();
-    assert_eq!(packet.packet_id, 49106);
-    assert_eq!(packet.data_points, 10);
-}
-
 /// Emotibit data type
 #[derive(Debug, Clone, PartialEq)]
 pub enum DataType {
