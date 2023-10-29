@@ -287,6 +287,46 @@ impl DataType {
             RB(s) => vec![s.to_owned()],
         }
     }
+
+    pub fn data_points(&self) -> u8 {
+        match self {
+            DataType::EA(data) => data.len() as u8,
+            DataType::EL(data) => data.len() as u8,
+            DataType::ER(data) => data.len() as u8,
+            DataType::PI(data) => data.len() as u8,
+            DataType::PR(data) => data.len() as u8,
+            DataType::PG(data) => data.len() as u8,
+            DataType::T0(data) => data.len() as u8,
+            DataType::T1(data) => data.len() as u8,
+            DataType::TH(data) => data.len() as u8,
+            DataType::AX(data) => data.len() as u8,
+            DataType::AY(data) => data.len() as u8,
+            DataType::AZ(data) => data.len() as u8,
+            DataType::GX(data) => data.len() as u8,
+            DataType::GY(data) => data.len() as u8,
+            DataType::GZ(data) => data.len() as u8,
+            DataType::MX(data) => data.len() as u8,
+            DataType::MY(data) => data.len() as u8,
+            DataType::MZ(data) => data.len() as u8,
+            DataType::BV(data) => data.len() as u8,
+            DataType::BATLV(data) => data.len() as u8,
+            DataType::AK(data) => data.len() as u8,
+            DataType::RD(data) => data.len() as u8,
+            DataType::TL(data) => data.len() as u8,
+            DataType::TX(data) => data.len() as u8,
+            DataType::TxTlLc(_data) => 1,
+            DataType::TxLcLm(data) => data.len() as u8,
+            DataType::EM(data) => data.len() as u8,
+            DataType::HR(data) => data.len() as u8,
+            DataType::BI(data) => data.len() as u8,
+            DataType::SA(data) => data.len() as u8,
+            DataType::SF(data) => data.len() as u8,
+            DataType::SR(data) => data.len() as u8,
+            DataType::UN(data) => data.len() as u8,
+            DataType::LM(data) => data.len() as u8,
+            DataType::RB(data) => data.len() as u8,
+        }
+    }
 }
 
 fn get_data_type(record: &StringRecord, type_str: &str) -> Result<DataType> {
